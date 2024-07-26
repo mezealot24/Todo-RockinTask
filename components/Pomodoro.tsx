@@ -1,47 +1,41 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 
+const POMODORO_TIME = 25 * 60; // 25 minutes in seconds
+
 const Pomodoro: React.FC = () => {
-  const [minutes, setMinutes] = useState(25);
-  const [seconds, setSeconds] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(POMODORO_TIME);
   const [isActive, setIsActive] = useState(false);
+
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+
+  const toggleTimer = useCallback(() => {
+    setIsActive(prev => !prev);
+  }, []);
+
+  const resetTimer = useCallback(() => {
+    setIsActive(false);
+    setTimeLeft(POMODORO_TIME);
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (isActive) {
+    if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
-        if (seconds > 0) {
-          setSeconds(seconds - 1);
-        }
-        if (seconds === 0) {
-          if (minutes === 0) {
-            clearInterval(interval);
-            setIsActive(false);
-            toast.success('Pomodoro session completed!');
-          } else {
-            setMinutes(minutes - 1);
-            setSeconds(59);
-          }
-        }
+        setTimeLeft(prev => prev - 1);
       }, 1000);
-    } else if (!isActive && seconds !== 0) {
-      clearInterval(interval);
+    } else if (timeLeft === 0) {
+      setIsActive(false);
+      toast.success('Pomodoro session completed!');
     }
 
-    return () => clearInterval(interval);
-  }, [isActive, minutes, seconds]);
-
-  const toggleTimer = () => {
-    setIsActive(!isActive);
-  };
-
-  const resetTimer = () => {
-    setIsActive(false);
-    setMinutes(25);
-    setSeconds(0);
-  };
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isActive, timeLeft]);
 
   return (
     <div className="bg-primary p-4 rounded-lg mb-4">
